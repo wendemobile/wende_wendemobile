@@ -3,8 +3,8 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 
 export const metadata: Metadata = {
-  title: 'AB Pro - POS System',
-  description: 'AB Pro - Inventory and Point of Sale Management System',
+  title: 'Wende Mobile Butajira | Smartphones & AirPods Max / Audio',
+  description: 'Wende Mobile Butajira - Premier flagship smartphones, AirPods Max, and retail Point of Sale system in Butajira, Ethiopia.',
 };
 
 export const viewport: Viewport = {

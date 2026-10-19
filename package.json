@@ -8,8 +8,10 @@
   "scripts": {
     "dev": "next dev",
     "dev:https": "node server.js",
-    "build": "prisma db push --accept-data-loss && prisma generate && npx tsx prisma/seed.ts && next build",
+    "build": "prisma generate && next build",
+    "build:full": "prisma db push --accept-data-loss && prisma generate && npx tsx prisma/seed.ts && next build",
     "build:check": "tsc --noEmit && next build",
+    "db:setup": "prisma db push && npx tsx prisma/seed.ts",
     "start": "next start",
     "start:https": "NODE_ENV=production node server.js",
     "lint": "next lint",

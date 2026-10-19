@@ -67,8 +67,8 @@ export function Sidebar() {
             <Zap className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-base lg:text-xl font-bold text-foreground leading-tight">AB Pro</h1>
-            <p className="text-xs text-muted-foreground">POS System</p>
+            <h1 className="text-base lg:text-xl font-bold text-foreground leading-tight">Wende Mobile</h1>
+            <p className="text-xs text-muted-foreground">Butajira POS</p>
           </div>
         </div>
         <div className="mt-8 flex-1 flex flex-col">

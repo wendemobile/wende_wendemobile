@@ -30,8 +30,8 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
 
-        // Allow public paths without authentication
-        if (path.startsWith('/login') || path.startsWith('/api/auth')) {
+        // Allow public paths without authentication (Landing page, Login, NextAuth APIs)
+        if (path === '/' || path.startsWith('/login') || path.startsWith('/api/auth')) {
           return true;
         }
 

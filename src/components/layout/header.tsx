@@ -116,7 +116,7 @@ export function Header({ user }: HeaderProps) {
             >
               <Menu className="h-6 w-6" />
             </Button>
-            <h1 className="text-sm sm:text-lg font-bold text-primary truncate">AB Pro</h1>
+            <h1 className="text-sm sm:text-lg font-bold text-primary truncate">Wende Mobile Butajira</h1>
           </div>
 
           <div ref={searchContainerRef} className="hidden md:flex flex-1 max-w-md relative">
