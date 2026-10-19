@@ -1,0 +1,65 @@
+# POS System - Client Deployment
+# Version: 1.2.0
+# 
+# SUPPORTS TWO MODES:
+# 1. ONLINE MODE (Tailscale HTTPS) - Remote access via internet
+# 2. OFFLINE/LAN MODE - Local network access via static IP
+#
+# INSTRUCTIONS:
+# 1. Copy this folder to client's computer
+# 2. Install Docker Desktop
+# 3. Edit .env file with your settings
+# 4. Run: docker compose up -d
+# 5. For ONLINE: Run: tailscale serve --bg http://localhost:3000
+# 6. For LAN: Access http://192.168.1.100:3000 from any LAN computer
+# 7. Default login: admin / admin123
+
+services:
+  db:
+    image: postgres:17-bookworm
+    container_name: pos-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-pos_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pos_secure_2024}
+      POSTGRES_DB: ${DB_NAME:-pos_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pos_user -d pos_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos-network
+
+  app:
+    image: pos-system:latest
+    container_name: pos-app
+    restart: always
+    ports:
+      # Expose on all interfaces for LAN access
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-pos_user}:${DB_PASSWORD:-pos_secure_2024}@db:5432/${DB_NAME:-pos_db}
+      # For LAN mode, use http://SERVER_IP:3000
+      # For Tailscale mode, use https://machine.tailxxxxx.ts.net
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://192.168.1.100:3000}
+      NEXTAUTH_SECRET: ${AUTH_SECRET:-change-this-secret-key-in-production-2024}
+      # Add all trusted hosts: localhost, LAN IP, Tailscale domain
+      TRUSTED_HOSTS: "localhost:3000,127.0.0.1:3000,${SERVER_LAN_IP:-192.168.1.100}:3000,${TAILSCALE_DOMAIN:-localhost}"
+      NEXTAUTH_URL_INTERNAL: "http://localhost:3000"
+      AUTH_TRUST_HOST: "true"
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - pos-network
+
+networks:
+  pos-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

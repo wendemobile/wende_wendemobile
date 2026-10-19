@@ -1,0 +1,47 @@
+web-pos-app  | Environment variables loaded from .env
+web-pos-app  | Prisma schema loaded from prisma/schema.prisma
+web-pos-app  | Datasource "db": PostgreSQL database "pos_db", schema "public" at "db:5432"
+web-pos-app  | 
+web-pos-app  | The database is already in sync with the Prisma schema.
+web-pos-app  | 
+web-pos-app  | Running generate... (Use --skip-generate to skip the generators)
+web-pos-app  | [2K[1A[2K[GRunning generate... - Prisma Client
+web-pos-app  | [2K[1A[2K[G✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 8.48s
+web-pos-app  | 
+web-pos-app  | Environment variables loaded from .env
+web-pos-app  | Running seed command `./node_modules/.bin/tsx prisma/seed.ts` ...
+web-pos-app  | Seeding database...
+web-pos-app  | Database seeded successfully!
+web-pos-app  | Default users:
+web-pos-app  |   - admin / admin123 (Administrator)
+web-pos-app  |   - cashier / cashier123 (Cashier)
+web-pos-app  |   - salesman / salesman123 (Salesman)
+web-pos-app  |   - basement / basement123 (Basement Manager)
+web-pos-app  | 
+web-pos-app  | 🌱  The seed command has been executed.
+web-pos-app  | ┌─────────────────────────────────────────────────────────┐
+web-pos-app  | │  Update available 5.22.0 -> 7.5.0                       │
+web-pos-app  | │                                                         │
+web-pos-app  | │  This is a major update - please follow the guide at    │
+web-pos-app  | │  https://pris.ly/d/major-version-upgrade                │
+web-pos-app  | │                                                         │
+web-pos-app  | │  Run the following to update                            │
+web-pos-app  | │    npm i --save-dev prisma@latest                       │
+web-pos-app  | │    npm i @prisma/client@latest                          │
+web-pos-app  | └─────────────────────────────────────────────────────────┘
+web-pos-app  |   ▲ Next.js 14.2.15
+web-pos-app  |   - Local:        http://localhost:3000
+web-pos-app  |   - Network:      http://0.0.0.0:3000
+web-pos-app  | 
+web-pos-app  |  ✓ Starting...
+web-pos-app  |  ✓ Ready in 504ms
+web-pos-app  | prisma:error 
+web-pos-app  | Invalid `prisma.return.create()` invocation:
+web-pos-app  | 
+web-pos-app  | 
+web-pos-app  | Transaction API error: Transaction not found. Transaction ID is invalid, refers to an old closed transaction Prisma doesn't have information about anymore, or was obtained before disconnecting.
+web-pos-app  | prisma:error 
+web-pos-app  | Invalid `prisma.return.create()` invocation:
+web-pos-app  | 
+web-pos-app  | 
+web-pos-app  | Transaction API error: Transaction already closed: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 5130 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.

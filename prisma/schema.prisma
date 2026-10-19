@@ -1,0 +1,842 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==================== USER & AUTH ====================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  username          String    @unique
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  fullName          String    @map("full_name")
+  roleId            String    @map("role_id")
+  defaultLocationId String?   @map("default_location_id")
+  isActive          Boolean   @default(true) @map("is_active")
+  lastLoginAt       DateTime? @map("last_login_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  role              Role           @relation(fields: [roleId], references: [id])
+  defaultLocation   Location?      @relation("UserDefaultLocation", fields: [defaultLocationId], references: [id])
+  cashierSales      Sale[]         @relation("CashierSales")
+  salesmanSales     Sale[]         @relation("SalesmanSales")
+  cancelledSales    Sale[]         @relation("CancelledSales")
+  expenses          Expense[]
+  transfers         Transfer[]     @relation("TransferCreatedBy")
+  assignedTransfers Transfer[]     @relation("TransferAssignedTo")
+  receivedTransfers Transfer[]     @relation("TransferReceivedBy")
+  auditLogs         AuditLog[]
+  openedSessions    DailySession[] @relation("SessionOpenedBy")
+  closedSessions    DailySession[] @relation("SessionClosedBy")
+  fundTransfers     FundTransfer[]
+  errorLogs         ErrorLog[]     @relation("ErrorLogUser")
+  resolvedErrors    ErrorLog[]     @relation("ErrorLogResolvedBy")
+  specialIncomes    SpecialIncome[] @relation("SpecialIncomeCreatedBy")
+  commissions       Commission[]
+
+  commissionRate    Decimal   @default(0) @db.Decimal(5, 2) @map("commission_rate")
+
+  @@index([roleId])
+  @@index([defaultLocationId])
+  @@map("users")
+}
+
+// ==================== LOCATION ====================
+
+model Location {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  type        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  stocks        Stock[]
+  sales         Sale[]
+  transfersFrom Transfer[] @relation("TransferFrom")
+  transfersTo   Transfer[] @relation("TransferTo")
+  usersDefault  User[]     @relation("UserDefaultLocation")
+  saleItems     SaleItem[]
+
+  @@map("locations")
+}
+
+
+// ==================== VENDOR ====================
+
+model Vendor {
+  id            String   @id @default(uuid())
+  name          String
+  contactPerson String?  @map("contact_person")
+  phone         String?
+  email         String?
+  address       String?
+  balance       Decimal  @default(0) @db.Decimal(12, 2)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  items       Item[]
+  defectMoves DefectVendorMove[]
+  payments    VendorPayment[]
+
+  @@map("vendors")
+}
+
+model VendorPayment {
+  id            String   @id @default(uuid())
+  vendorId      String   @map("vendor_id")
+  amount        Decimal  @db.Decimal(12, 2)
+  paymentMethod String   @map("payment_method")
+  bankAccountId String?  @map("bank_account_id")
+  reference     String?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  vendor      Vendor       @relation(fields: [vendorId], references: [id])
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([vendorId])
+  @@index([bankAccountId])
+  @@map("supplier_payments")
+}
+
+// ==================== ITEM & STOCK ====================
+
+model Item {
+  id               String   @id @default(uuid())
+  sku              String   @unique
+  name             String
+  brand            String?
+  itemType         String?  @map("item_type")
+  unitOfMeasure    String   @default("PIECE") @map("unit_of_measure")
+  unitPrice        Decimal  @db.Decimal(12, 2) @map("unit_price")
+  costPrice        Decimal  @db.Decimal(12, 2) @map("cost_price")
+  category         String?
+  subcategory      String?
+  barcode          String   @unique
+  barcodeGenerated Boolean  @default(false) @map("barcode_generated")
+  minStock         Decimal  @default(0) @db.Decimal(12, 3) @map("min_stock")
+  specifications   String?
+  isActive         Boolean  @default(true) @map("is_active")
+  supplierId       String?  @map("supplier_id")
+  vendorId         String?  @map("vendor_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  supplier      Vendor?        @relation(fields: [vendorId], references: [id])
+  stocks        Stock[]
+  saleItems     SaleItem[]
+  defects       Defect[]
+  transferItems TransferItem[]
+  returnItems   ReturnItem[]
+  layawayItems  LayawayItem[]
+  image         ItemImage?
+
+  @@index([name])
+  @@index([sku])
+  @@index([barcode])
+  @@index([category])
+  @@index([brand])
+  @@index([isActive, category])
+  @@index([isActive, brand])
+  @@index([vendorId])
+  @@map("items")
+}
+
+model Stock {
+  id          String   @id @default(uuid())
+  itemId      String   @map("item_id")
+  locationId  String   @map("location_id")
+  qty         Decimal  @db.Decimal(12, 3)
+  reservedQty Decimal  @default(0) @db.Decimal(12, 3) @map("reserved_qty")
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  item     Item     @relation(fields: [itemId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@unique([itemId, locationId])
+  @@index([itemId])
+  @@index([locationId])
+  @@index([qty])  // For low stock queries
+  @@map("stocks")
+}
+
+// ==================== CUSTOMER ====================
+
+model Customer {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String?
+  email       String?
+  idNumber    String?  @map("id_number")
+  address     String?
+  creditLimit Decimal  @default(0) @db.Decimal(12, 2) @map("credit_limit")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sales    Sale[]
+  credits  Credit[]
+  defects  Defect[]
+  returns  Return[]
+  layaways Layaway[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([idNumber])
+  @@map("customers")
+}
+
+
+// ==================== SALE ====================
+
+model Sale {
+  id               String    @id @default(uuid())
+  receiptNumber    String    @unique @map("receipt_number")
+  saleNumber       String?   @unique @map("sale_number")
+  cashierId        String?   @map("cashier_id")
+  customerId       String?   @map("customer_id")
+  locationId       String?   @map("location_id")
+  salesmanId       String?   @map("salesman_id")
+  totalAmount      Decimal   @db.Decimal(12, 2) @map("total_amount")
+  actualAmountPaid Decimal   @db.Decimal(12, 2) @map("actual_amount_paid")
+  totalCost        Decimal   @db.Decimal(12, 2) @map("total_cost")
+  discount         Decimal   @default(0) @db.Decimal(12, 2)
+  paymentMethod    String    @map("payment_method")
+  status           String    @default("PENDING")
+  sessionId        String?   @map("session_id")
+  notes            String?
+  refundAmount        Decimal?  @db.Decimal(12, 2) @map("refund_amount")
+  refundMethod        String?   @map("refund_method")
+  refundBankAccountId String?   @map("refund_bank_account_id")
+  cancelledAt         DateTime? @map("cancelled_at")
+  cancelledById       String?   @map("cancelled_by_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  cashier     User?         @relation("CashierSales", fields: [cashierId], references: [id])
+  salesman    User?         @relation("SalesmanSales", fields: [salesmanId], references: [id])
+  customer    Customer?     @relation(fields: [customerId], references: [id])
+  location    Location?     @relation(fields: [locationId], references: [id])
+  session     DailySession? @relation(fields: [sessionId], references: [id])
+  cancelledBy User?         @relation("CancelledSales", fields: [cancelledById], references: [id])
+  items       SaleItem[]
+  payments    Payment[]
+  credits     Credit[]
+  returns     Return[]
+  commissions Commission[]
+
+  @@index([receiptNumber])
+  @@index([customerId])
+  @@index([cashierId])
+  @@index([createdAt])
+  @@index([status])
+  @@index([sessionId])
+  @@index([locationId])
+  @@index([salesmanId])
+  @@index([status, createdAt])  // For dashboard queries
+  @@index([locationId, status, createdAt])  // For location reports
+  @@map("sales")
+}
+
+model SaleItem {
+  id         String  @id @default(uuid())
+  saleId     String  @map("sale_id")
+  itemId     String  @map("item_id")
+  locationId String? @map("location_id")
+  qty        Decimal @db.Decimal(12, 3)
+  unitPrice  Decimal @db.Decimal(12, 2) @map("unit_price")
+  costPrice  Decimal @db.Decimal(12, 2) @map("cost_price")
+  lineTotal  Decimal @db.Decimal(12, 2) @map("line_total")
+
+  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  item     Item      @relation(fields: [itemId], references: [id])
+  location Location? @relation(fields: [locationId], references: [id])
+
+  @@index([saleId])
+  @@index([itemId])
+  @@index([locationId])
+  @@map("sale_items")
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  saleId         String   @map("sale_id")
+  method         String
+  amount         Decimal  @db.Decimal(12, 2)
+  bankAccountId  String?  @map("bank_account_id")
+  reference      String?
+  sequenceNumber Int      @default(1) @map("sequence_number")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  sale        Sale         @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([saleId])
+  @@index([bankAccountId])
+  @@map("payments")
+}
+
+// ==================== CREDIT ====================
+
+model Credit {
+  id            String    @id @default(uuid())
+  customerId    String?   @map("customer_id")
+  saleId        String    @map("sale_id")
+  customerName  String?   @map("customer_name")
+  customerPhone String?   @map("customer_phone")
+  principal     Decimal   @db.Decimal(12, 2)
+  balance       Decimal   @db.Decimal(12, 2)
+  dueDate       DateTime  @db.Date @map("due_date")
+  status        String    @default("OPEN")
+  closedAt      DateTime? @map("closed_at")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  customer Customer?       @relation(fields: [customerId], references: [id])
+  sale     Sale            @relation(fields: [saleId], references: [id])
+  payments CreditPayment[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("credits")
+}
+
+model CreditPayment {
+  id            String   @id @default(uuid())
+  creditId      String   @map("credit_id")
+  amount        Decimal  @db.Decimal(12, 2)
+  paymentMethod String   @map("payment_method")
+  bankAccountId String?  @map("bank_account_id")
+  reference     String?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  credit      Credit       @relation(fields: [creditId], references: [id])
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@map("credit_payments")
+}
+
+
+// ==================== TRANSFER ====================
+
+model Transfer {
+  id             String    @id @default(uuid())
+  transferNumber String    @unique @map("transfer_number")
+  fromLocationId String    @map("from_location_id")
+  toLocationId   String    @map("to_location_id")
+  salesmanId     String?   @map("salesman_id")
+  assignedToId   String?   @map("assigned_to_id")
+  receivedById   String?   @map("received_by_id")
+  purpose        String    @default("STOCK_MOVE")
+  status         String    @default("CREATED")
+  notes          String?
+  createdById    String    @map("created_by_id")
+  sentAt         DateTime? @map("sent_at")
+  receivedAt     DateTime? @map("received_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  fromLocation Location       @relation("TransferFrom", fields: [fromLocationId], references: [id])
+  toLocation   Location       @relation("TransferTo", fields: [toLocationId], references: [id])
+  createdBy    User           @relation("TransferCreatedBy", fields: [createdById], references: [id])
+  assignedTo   User?          @relation("TransferAssignedTo", fields: [assignedToId], references: [id])
+  receivedBy   User?          @relation("TransferReceivedBy", fields: [receivedById], references: [id])
+  items        TransferItem[]
+
+
+
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transfers")
+}
+
+model TransferItem {
+  id         String  @id @default(uuid())
+  transferId String  @map("transfer_id")
+  itemId     String  @map("item_id")
+  qty        Decimal @db.Decimal(12, 3)
+
+  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("transfer_items")
+}
+
+// ==================== EXPENSE ====================
+
+model Expense {
+  id            String   @id @default(uuid())
+  amount        Decimal  @db.Decimal(12, 2)
+  category      String
+  payee         String?
+  description   String?
+  paymentMethod String   @map("payment_method")
+  bankAccountId String?  @map("bank_account_id")
+  reference     String?
+  sessionId     String?  @map("session_id")
+  createdById   String   @map("created_by_id")
+  expenseDate   DateTime @db.Date @map("expense_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  bankAccount BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  session     DailySession? @relation(fields: [sessionId], references: [id])
+  createdBy   User          @relation(fields: [createdById], references: [id])
+
+  @@index([category])
+  @@index([expenseDate])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("expenses")
+}
+
+// ==================== DEFECT ====================
+
+model Defect {
+  id           String    @id @default(uuid())
+  defectNumber String    @unique @map("defect_number")
+  customerId   String?   @map("customer_id")
+  itemId       String?   @map("item_id")
+  itemName     String    @map("item_name")
+  serialNumber String?   @map("serial_number")
+  description  String
+  priority     String    @default("NORMAL")
+  status       String    @default("NEW")
+  intakeDate   DateTime  @db.Date @map("intake_date")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  customer    Customer?          @relation(fields: [customerId], references: [id])
+  item        Item?              @relation(fields: [itemId], references: [id])
+  vendorMoves DefectVendorMove[]
+  notes       DefectNote[]
+  photos      DefectPhoto[]
+
+
+
+  @@index([customerId])
+  @@index([itemId])
+  @@index([status])
+  @@index([intakeDate])
+  @@map("defects")
+}
+
+model DefectVendorMove {
+  id         String    @id @default(uuid())
+  defectId   String    @map("defect_id")
+  vendorId   String    @map("vendor_id")
+  sentAt     DateTime  @map("sent_at")
+  receivedAt DateTime? @map("received_at")
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  defect Defect @relation(fields: [defectId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@map("defect_vendor_moves")
+}
+
+model DefectNote {
+  id        String   @id @default(uuid())
+  defectId  String   @map("defect_id")
+  note      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  defect Defect @relation(fields: [defectId], references: [id], onDelete: Cascade)
+
+  @@map("defect_notes")
+}
+
+model DefectPhoto {
+  id        String   @id @default(uuid())
+  defectId  String   @map("defect_id")
+  url       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  defect Defect @relation(fields: [defectId], references: [id], onDelete: Cascade)
+
+  @@map("defect_photos")
+}
+
+
+// ==================== RETURN ====================
+
+model Return {
+  id            String   @id @default(uuid())
+  returnNumber  String   @unique @map("return_number")
+  saleId        String   @map("sale_id")
+  customerId    String?  @map("customer_id")
+  returnType    String   @map("return_type")
+  totalAmount   Decimal  @db.Decimal(12, 2) @map("total_amount")
+  refundMethod  String?  @map("refund_method")
+  bankAccountId String?  @map("bank_account_id")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sale        Sale         @relation(fields: [saleId], references: [id])
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+  items       ReturnItem[]
+  payments    ReturnPayment[]
+
+  @@index([saleId])
+  @@index([customerId])
+  @@map("returns")
+}
+
+model ReturnItem {
+  id           String  @id @default(uuid())
+  returnId     String  @map("return_id")
+  itemId       String  @map("item_id")
+  qty          Decimal @db.Decimal(12, 3)
+  unitPrice    Decimal @db.Decimal(12, 2) @map("unit_price")
+  lineTotal    Decimal @db.Decimal(12, 2) @map("line_total")
+  isResellable Boolean @default(true) @map("is_resellable")
+
+  return Return @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@map("return_items")
+}
+
+model ReturnPayment {
+  id            String   @id @default(uuid())
+  returnId      String   @map("return_id")
+  amount        Decimal  @db.Decimal(12, 2)
+  paymentMethod String   @map("payment_method")
+  bankAccountId String?  @map("bank_account_id")
+  reference     String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  return      Return       @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([returnId])
+  @@index([bankAccountId])
+  @@map("return_payments")
+}
+
+// ==================== BANK ACCOUNT ====================
+
+model BankAccount {
+  id             String   @id @default(uuid())
+  holderName     String   @map("holder_name")
+  bankName       String   @map("bank_name")
+  accountNumber  String   @unique @map("account_number")
+  initialBalance Decimal  @db.Decimal(12, 2) @map("initial_balance")
+  currentBalance Decimal  @db.Decimal(12, 2) @map("current_balance")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  payments            Payment[]
+  expenses            Expense[]
+  creditPayments      CreditPayment[]
+  vendorPayments      VendorPayment[]
+  returns             Return[]
+  returnPayments      ReturnPayment[]
+  transactionsFrom    BankTransaction[] @relation("TransactionFrom")
+  transactionsTo      BankTransaction[] @relation("TransactionTo")
+  fundTransfersSource FundTransfer[]    @relation("FundTransferSource")
+  fundTransfersDest   FundTransfer[]    @relation("FundTransferDest")
+  layawayPayments     LayawayPayment[]
+
+  @@map("bank_accounts")
+}
+
+model BankTransaction {
+  id              String   @id @default(uuid())
+  fromAccountId   String?  @map("from_account_id")
+  toAccountId     String?  @map("to_account_id")
+  amount          Decimal  @db.Decimal(12, 2)
+  transactionType String   @map("transaction_type")
+  reference       String?
+  description     String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  fromAccount BankAccount? @relation("TransactionFrom", fields: [fromAccountId], references: [id])
+  toAccount   BankAccount? @relation("TransactionTo", fields: [toAccountId], references: [id])
+
+  @@index([createdAt])
+  @@map("bank_account_transactions")
+}
+
+// ==================== DAILY SESSION ====================
+
+model DailySession {
+  id                 String    @id @default(uuid())
+  businessDate       DateTime  @db.Date @map("business_date")
+  openedAt           DateTime  @map("opened_at")
+  closedAt           DateTime? @map("closed_at")
+  openedById         String    @map("opened_by_id")
+  closedById         String?   @map("closed_by_id")
+  openingCashBalance Decimal   @db.Decimal(12, 2) @map("opening_cash_balance")
+  closingCashBalance Decimal   @default(0) @db.Decimal(12, 2) @map("closing_cash_balance")
+  actualCashCount    Decimal   @default(0) @db.Decimal(12, 2) @map("actual_cash_count")
+  cashVariance       Decimal   @default(0) @db.Decimal(12, 2) @map("cash_variance")
+  status             String    @default("OPEN")
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  openedBy       User           @relation("SessionOpenedBy", fields: [openedById], references: [id])
+  closedBy       User?          @relation("SessionClosedBy", fields: [closedById], references: [id])
+  sales          Sale[]
+  expenses       Expense[]
+  fundTransfers  FundTransfer[]
+  specialIncomes SpecialIncome[]
+
+  @@index([businessDate])
+  @@index([status])
+  @@map("daily_sessions")
+}
+
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@index([entityType, createdAt])  // For filtered audit queries
+  @@map("audit_logs")
+}
+
+// ==================== NOTIFICATION ====================
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ==================== SPECIAL INCOME ====================
+
+model SpecialIncome {
+  id            String   @id @default(uuid())
+  amount        Decimal  @db.Decimal(12, 2)
+  category      String
+  description   String?
+  reference     String?
+  paymentMethod String?  @map("payment_method")
+  bankAccountId String?  @map("bank_account_id")
+  sessionId     String?  @map("session_id")
+  createdById   String   @map("recorded_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  session   DailySession? @relation(fields: [sessionId], references: [id])
+  createdBy User          @relation("SpecialIncomeCreatedBy", fields: [createdById], references: [id])
+
+  @@map("special_incomes")
+}
+
+// ==================== FUND TRANSFER ====================
+
+model FundTransfer {
+  id           String   @id @default(uuid())
+  type         String
+  amount       Decimal  @db.Decimal(12, 2)
+  sourceBankId String?  @map("source_bank_id")
+  destBankId   String?  @map("dest_bank_id")
+  reference    String?
+  notes        String?
+  userId       String   @map("user_id")
+  sessionId    String?  @map("session_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  sourceBank BankAccount?  @relation("FundTransferSource", fields: [sourceBankId], references: [id])
+  destBank   BankAccount?  @relation("FundTransferDest", fields: [destBankId], references: [id])
+  user       User          @relation(fields: [userId], references: [id])
+  session    DailySession? @relation(fields: [sessionId], references: [id])
+
+  @@map("cash_flow_entries")
+}
+
+// ==================== ITEM IMAGE ====================
+
+model ItemImage {
+  id           String   @id @default(uuid())
+  itemId       String   @unique @map("item_id")
+  filename     String
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  path         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("item_images")
+}
+
+// ==================== ERROR LOG ====================
+
+model ErrorLog {
+  id           String    @id @default(uuid())
+  code         String
+  message      String
+  stackTrace   String?   @map("stack_trace")
+  context      Json?
+  userId       String?   @map("user_id")
+  requestId    String?   @map("request_id")
+  severity     String
+  component    String?
+  resolved     Boolean   @default(false)
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedById String?   @map("resolved_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user       User? @relation("ErrorLogUser", fields: [userId], references: [id])
+  resolvedBy User? @relation("ErrorLogResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([severity])
+  @@index([createdAt])
+  @@map("error_logs")
+}
+
+
+// ==================== RECEIPT SEQUENCE ====================
+
+model ReceiptSequence {
+  datePrefix String   @id @map("date_prefix")
+  lastValue  BigInt   @default(0) @map("last_value")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("receipt_sequences")
+}
+
+// ==================== LAYAWAY ====================
+
+model Layaway {
+  id            String    @id @default(uuid())
+  layawayNumber String    @unique @map("layaway_number")
+  customerId    String    @map("customer_id")
+  totalAmount   Decimal   @db.Decimal(12, 2) @map("total_amount")
+  depositAmount Decimal   @db.Decimal(12, 2) @map("deposit_amount")
+  paidAmount    Decimal   @default(0) @db.Decimal(12, 2) @map("paid_amount")
+  balanceAmount Decimal   @db.Decimal(12, 2) @map("balance_amount")
+  minPayment    Decimal   @default(0) @db.Decimal(12, 2) @map("min_payment")
+  status        String    @default("ACTIVE")
+  dueDate       DateTime? @db.Date @map("due_date")
+  completedAt   DateTime? @map("completed_at")
+  cancelledAt   DateTime? @map("cancelled_at")
+  notes         String?
+  createdById   String?   @map("created_by_id")
+  locationId    String?   @map("location_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  customer Customer         @relation(fields: [customerId], references: [id])
+  items    LayawayItem[]
+  payments LayawayPayment[]
+
+  @@index([status])
+  @@index([customerId])
+  @@map("layaways")
+}
+
+model LayawayItem {
+  id        String  @id @default(uuid())
+  layawayId String  @map("layaway_id")
+  itemId    String  @map("item_id")
+  qty       Decimal @db.Decimal(12, 3)
+  unitPrice Decimal @db.Decimal(12, 2) @map("unit_price")
+  lineTotal Decimal @db.Decimal(12, 2) @map("line_total")
+
+  layaway Layaway @relation(fields: [layawayId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@map("layaway_items")
+}
+
+model LayawayPayment {
+  id            String   @id @default(uuid())
+  layawayId     String   @map("layaway_id")
+  amount        Decimal  @db.Decimal(12, 2)
+  paymentMethod String   @map("payment_method")
+  bankAccountId String?  @map("bank_account_id")
+  reference     String?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  layaway       Layaway      @relation(fields: [layawayId], references: [id], onDelete: Cascade)
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@map("layaway_payments")
+}
+
+// ==================== COMMISSION ====================
+
+model Commission {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  saleId          String   @map("sale_id")
+  amount          Decimal  @db.Decimal(12, 2)
+  rate            Decimal  @db.Decimal(5, 2)
+  profitSnapshot  Decimal  @db.Decimal(12, 2) @map("profit_snapshot")
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  sale Sale @relation(fields: [saleId], references: [id])
+
+  @@index([userId])
+  @@index([saleId])
+  @@index([createdAt])
+  @@map("commissions")
+}

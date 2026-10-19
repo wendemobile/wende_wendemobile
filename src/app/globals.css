@@ -1,0 +1,378 @@
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Performance: Reduce motion for users who prefer it or on slow connections */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Data saver mode - reduce animations */
+@media (prefers-reduced-data: reduce) {
+  * {
+    background-image: none !important;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 250 89% 65%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 10% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 5% 45%;
+    --accent: 250 89% 95%;
+    --accent-foreground: 250 89% 40%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
+    --ring: 250 89% 65%;
+    --radius: 0.75rem;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
+  }
+
+  .dark {
+    --background: 240 10% 5%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 250 89% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 10% 15%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
+    --ring: 250 89% 65%;
+    --success: 142 76% 46%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    @apply scroll-smooth;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 14px;
+  }
+
+  @media (min-width: 375px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 16px;
+    }
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+  }
+
+  /* Native form controls inherit theme (fixes dark-mode white boxes) */
+  input, textarea, select {
+    @apply touch-manipulation;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    color-scheme: inherit;
+  }
+
+  button {
+    @apply touch-manipulation;
+    color-scheme: inherit;
+  }
+
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
+
+  /* Number input: hide native spinners for a clean premium look */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Theme-aware scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
+  }
+
+  /* Safe area for mobile devices */
+  .safe-bottom,
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-top,
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+
+@layer components {
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.02)];
+  }
+
+  /* Gradient backgrounds */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 transition-all;
+  }
+
+  .gradient-card {
+    @apply bg-gradient-to-br from-card/80 to-secondary/30 backdrop-blur-lg;
+  }
+
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.4);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+  }
+
+  /* Mobile card styles */
+  .mobile-card {
+    @apply bg-card/80 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-border/50 shadow-xl;
+  }
+
+  /* Touch-friendly button */
+  .touch-btn {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Floating action button - positioned above bottom nav on mobile */
+  .fab {
+    @apply fixed bottom-20 right-3 z-40 h-14 w-14 rounded-full gradient-primary shadow-lg glow-primary flex items-center justify-center text-white active:scale-95 transition-transform safe-area-bottom;
+  }
+
+  /* Bottom navigation */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50 glass safe-bottom;
+  }
+
+  /* Status badges - smaller on mobile */
+  .badge {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap;
+  }
+
+  .badge-success {
+    @apply bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-400;
+  }
+
+  .badge-warning {
+    @apply bg-amber-500/15 text-amber-700 border border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-400;
+  }
+
+  .badge-error {
+    @apply bg-red-500/15 text-red-700 border border-red-500/30 dark:bg-red-500/20 dark:text-red-400;
+  }
+
+  .badge-info {
+    @apply bg-blue-500/15 text-blue-700 border border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-400;
+  }
+
+  /* Item image container */
+  .item-image {
+    @apply w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0;
+  }
+
+  .item-image img {
+    @apply w-full h-full object-cover;
+  }
+
+  /* Scanner overlay */
+  .scanner-overlay {
+    @apply fixed inset-0 z-50 bg-black;
+  }
+
+  .scanner-frame {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 sm:w-64 sm:h-64 border-2 border-primary rounded-2xl;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+  }
+
+  .scanner-line {
+    @apply absolute top-0 left-0 right-0 h-0.5 bg-primary;
+    animation: scan 2s linear infinite;
+  }
+
+  @keyframes scan {
+    0%, 100% { top: 0; }
+    50% { top: 100%; }
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-secondary animate-pulse rounded;
+  }
+
+  /* Text truncation helpers */
+  .text-truncate {
+    @apply truncate max-w-full;
+  }
+
+  .text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Responsive text sizes */
+  .text-responsive-xs {
+    @apply text-[10px] sm:text-xs;
+  }
+
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-xl sm:text-2xl;
+  }
+
+  /* Compact spacing for small screens */
+  .compact-gap {
+    @apply gap-1.5 sm:gap-2 md:gap-3;
+  }
+
+  .compact-p {
+    @apply p-2 sm:p-3 md:p-4;
+  }
+
+  /* Price display - never truncate prices */
+  .price-display {
+    @apply text-base sm:text-lg font-bold text-primary whitespace-nowrap;
+  }
+
+  .price-display-lg {
+    @apply text-lg sm:text-xl md:text-2xl font-bold text-primary whitespace-nowrap;
+  }
+
+  /* Touch scroll - momentum scrolling for mobile */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+
+  /* Scroll container base */
+  .scroll-container {
+    @apply overflow-y-auto touch-scroll;
+  }
+
+  /* Mobile 2-column grid */
+  .mobile-grid-2col {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  /* Touch target minimum size (44x44px for accessibility) */
+  .touch-target-min {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Product card with tap feedback */
+  .product-card {
+    @apply p-2 bg-secondary rounded-xl text-left transition-all border border-transparent;
+    @apply hover:bg-secondary/80 hover:border-primary/30;
+    @apply active:scale-[0.98] active:bg-secondary/70;
+  }
+
+  /* Cart item card */
+  .cart-item-card {
+    @apply flex flex-col gap-2 p-2 bg-secondary rounded-xl;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  /* Active state for touch */
+  .active-scale {
+    @apply active:scale-95 transition-transform;
+  }
+
+  /* Prevent text selection on touch */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Word break for long text */
+  .break-word {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+}
